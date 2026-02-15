@@ -80,8 +80,8 @@ START REPLICA;
 SHOW REPLICA STATUS\G
 ```
 
-- `Replica_IO_Running: Yes` — связь с мастером установлена.\
-- `Replica_SQL_Running: Yes` — изменения успешно применяются.\
+- `Replica_IO_Running: Yes` — связь с мастером установлена. 
+- `Replica_SQL_Running: Yes` — изменения успешно применяются. 
 - `Seconds_Behind_Source: 0` — реплика идет в ногу с мастером, задержек нет.
 
 Поверка:
