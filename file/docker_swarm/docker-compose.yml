@@ -1,0 +1,33 @@
+services:
+  mysql_master:
+    image: mysql:latest
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 12345
+    ports:
+      - 3306:3306
+    volumes:
+      - ./master.cnf:/etc/mysql/conf.d/master.cnf
+    networks:
+      - mysql_network
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+
+  mysql_slave:
+    image: mysql:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: 12345
+    ports:
+      - 3307:3306
+    volumes:
+      - ./slave.cnf:/etc/mysql/conf.d/slave.cnf
+    networks:
+      - mysql_network
+    deploy:
+      placement:
+        constraints: [node.role == worker]
+
+networks:
+  mysql_network:
+    driver: overlay # Объединение хостов

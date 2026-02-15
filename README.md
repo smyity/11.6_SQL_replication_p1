@@ -1,1 +1,203 @@
-# 11.6_SQL_replication_p1
+# Домашнее задание к занятию «Репликация и масштабирование. Часть 1»
+
+### Задание 1
+
+На лекции рассматривались режимы репликации master-slave, master-master, опишите их различия.
+
+*Ответить в свободной форме.*
+
+### Решение 1
+
+В режиме **master-slave**, master-сервер может выполнять все действия с базами данных (чтение, редактирование, обновление, удаление), а slave-сервер только обработку запросов (чтение). Можно использовать для перераспределения нагрузки между серверами по ролям. Если master выйдет из строя, то обрабатывать запросы всё ещё будет возможно. Также обеспечивается целостность данных: при возникновении ошибки файловой системы на master-сервере, slave-сервер хранит копию и проверяет целостность приходящих WAL-логов, что служит дополнительным фильтром ошибок.
+Сомнительный момент: можно настроить slave-сервер так, чтобы он повторял действия master-сервера с задержкой - это может быть своеобразной "резервной копией".
+
+В режиме **master-master** все серверы равноправны - это повышает отказоустойчивость, если один master-сервер откажет, то другой может его полностью заменить.
+
+---
+
+### Задание 2
+
+Выполните конфигурацию master-slave репликации, примером можно пользоваться из лекции.
+
+*Приложите скриншоты конфигурации, выполнения работы: состояния и режимы работы серверов.*
+
+
+### Решение 2
+
+#### Docker
+
+Для решения используется образ Docker на одном хосте.
+
+...
+├── [docker-compose.yml](file/docker/docker-compose.yml)
+├── [master.cnf](file/master.cnf)
+└── [slave.cnf](file/slave.cnf)
+
+На мастере:
+
+```sql
+CREATE USER 'repl'@'%' IDENTIFIED BY '12345';
+```
+
+```sql
+GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';
+```
+
+```sql
+FLUSH PRIVILEGES;
+```
+
+```sql
+SHOW BINARY LOG STATUS;
+```
+
++------------------+----------+--------------+------------------+------------------------------------------+
+| File             | Position | Binlog_Do_DB | Binlog_Ignore_DB | Executed_Gtid_Set                        |
++------------------+----------+--------------+------------------+------------------------------------------+
+| mysql-bin.000003 |      897 |              |                  | 71b985ef-08fd-11f1-9f66-c2a29f918b7c:1-8 |
++------------------+----------+--------------+------------------+------------------------------------------+
+
+На реплике:
+
+```sql
+CHANGE REPLICATION SOURCE TO
+  SOURCE_HOST='mysql-master',
+  SOURCE_USER='repl',
+  SOURCE_PASSWORD='12345',
+  SOURCE_LOG_FILE='mysql-bin.000003',
+  SOURCE_LOG_POS=897;
+```
+
+```sql
+START REPLICA;
+```
+
+Проверка на реплике:
+
+```sql
+SHOW REPLICA STATUS\G
+```
+
+- `Replica_IO_Running: Yes` — связь с мастером установлена.\
+- `Replica_SQL_Running: Yes` — изменения успешно применяются.\
+- `Seconds_Behind_Source: 0` — реплика идет в ногу с мастером, задержек нет.
+
+Поверка:
+
+Создание на мастере новой базы данных:
+
+```sql
+CREATE DATABASE test_db;
+```
+
+![](pic/PIC001.PNG)
+
+#### Docker swarm
+
+...
+├── [docker-compose.yml](file/docker_swarm/docker-compose.yml)
+├── [master.cnf](file/master.cnf)
+└── [slave.cnf](file/slave.cnf)
+
+На мастере:
+
+```
+docker swarm init
+```
+
+На реплике(пример):
+
+```
+docker swarm join --token SWMTKN-1-5l7w4g1qswej94rj2j9yuq0ikxhd65hv8tck8ndipjaz6bagam-0l0177ssapqnxbyjvy40lax6s 10.0.1.28:2377
+```
+
+На мастере:
+
+```
+docker stack deploy -c docker-compose.yml my_sql_db
+```
+
+![](pic/PIC002.PNG)
+
+На реплике:
+
+![](pic/PIC003.PNG)
+
+```sql
+CHANGE REPLICATION SOURCE TO
+  SOURCE_HOST='93.77.179.132',
+  SOURCE_USER='repl',
+  SOURCE_PASSWORD='slavepass',
+  SOURCE_LOG_FILE='mysql-bin.000003',
+  SOURCE_LOG_POS=897;
+```
+
+```sql
+START REPLICA;
+```
+
+**Настройка SSL**
+
+Поскольку связь проходит через внешний IP, данные передаются в открытом виде. Для безопасности их нужно шифровать.
+
+На мастере:
+```sql
+ALTER USER 'repl'@'%' REQUIRE SSL;
+```
+
+```sql
+FLUSH PRIVILEGES;
+```
+
+На реплике:
+```sql
+STOP REPLICA;
+```
+
+```sql
+CHANGE REPLICATION SOURCE TO
+  SOURCE_SSL = 1;
+```
+
+```sql
+START REPLICA;
+```
+
+Проверка на мастере:
+
+```sql
+SELECT sbt.variable_value AS tls_version, t2.variable_value AS cipher, processlist_user AS user, processlist_host AS host 
+FROM performance_schema.status_by_thread sbt
+JOIN performance_schema.threads t1 ON sbt.thread_id = t1.thread_id
+JOIN performance_schema.status_by_thread t2 ON t2.thread_id = t1.thread_id
+WHERE sbt.variable_name = 'Ssl_version' 
+AND t2.variable_name = 'Ssl_cipher' 
+AND processlist_user = 'repl';
+```
+
++-------------+------------------------+------+----------+
+| tls_version | cipher                 | user | host     |
++-------------+------------------------+------+----------+
+| TLSv1.3     | TLS_AES_128_GCM_SHA256 | repl | 10.0.0.2 |
++-------------+------------------------+------+----------+
+1 row in set (0.025 sec)
+
+Проверка режима "Read-Only"
+
+```sql
+SELECT @@GLOBAL.read_only;
+```
+
+На реплике будет 1, на мастере - 0.
+
+
+---
+
+### Задание 3* 
+
+Выполните конфигурацию master-master репликации. Произведите проверку.
+
+*Приложите скриншоты конфигурации, выполнения работы: состояния и режимы работы серверов.*
+
+
+### Решение 3
