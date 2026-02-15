@@ -28,9 +28,9 @@
 
 Для решения используется образ Docker на одном хосте.
 
-...
-├── [docker-compose.yml](file/docker/docker-compose.yml)
-├── [master.cnf](file/master.cnf)
+...\
+├── [docker-compose.yml](file/docker/docker-compose.yml)\
+├── [master.cnf](file/master.cnf)\
 └── [slave.cnf](file/slave.cnf)
 
 На мастере:
@@ -51,11 +51,13 @@ FLUSH PRIVILEGES;
 SHOW BINARY LOG STATUS;
 ```
 
+```
 +------------------+----------+--------------+------------------+------------------------------------------+
 | File             | Position | Binlog_Do_DB | Binlog_Ignore_DB | Executed_Gtid_Set                        |
 +------------------+----------+--------------+------------------+------------------------------------------+
 | mysql-bin.000003 |      897 |              |                  | 71b985ef-08fd-11f1-9f66-c2a29f918b7c:1-8 |
 +------------------+----------+--------------+------------------+------------------------------------------+
+```
 
 На реплике:
 
@@ -94,9 +96,9 @@ CREATE DATABASE test_db;
 
 #### Docker swarm
 
-...
-├── [docker-compose.yml](file/docker_swarm/docker-compose.yml)
-├── [master.cnf](file/master.cnf)
+...\
+├── [docker-compose.yml](file/docker_swarm/docker-compose.yml)\
+├── [master.cnf](file/master.cnf)\
 └── [slave.cnf](file/slave.cnf)
 
 На мастере:
@@ -175,12 +177,14 @@ AND t2.variable_name = 'Ssl_cipher'
 AND processlist_user = 'repl';
 ```
 
+```
 +-------------+------------------------+------+----------+
 | tls_version | cipher                 | user | host     |
 +-------------+------------------------+------+----------+
 | TLSv1.3     | TLS_AES_128_GCM_SHA256 | repl | 10.0.0.2 |
 +-------------+------------------------+------+----------+
 1 row in set (0.025 sec)
+```
 
 Проверка режима "Read-Only"
 
