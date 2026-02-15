@@ -1,0 +1,13 @@
+[mysqld]
+server-id = 1
+log_bin = mysql-bin.log
+
+log_replica_updates = ON
+
+# GTID настройки
+gtid_mode = ON
+enforce_gtid_consistency = ON
+
+# Чтобы избежать конфликтов ID
+auto-increment-increment = 2
+auto-increment-offset = 1

@@ -1,0 +1,28 @@
+services:
+  mysql_master1:
+    container_name: mysql-master1
+    image: mysql:latest
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 12345
+    ports:
+      - 3306:3306
+    volumes:
+      - ./master1.cnf:/etc/mysql/conf.d/master1.cnf
+    networks:
+      - mysql_network
+
+  mysql_master2:
+    container_name: mysql-master2
+    image: mysql:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: 12345
+    ports:
+      - 3307:3306
+    volumes:
+      - ./master2.cnf:/etc/mysql/conf.d/master2.cnf
+    networks:
+      - mysql_network
+
+networks:
+  mysql_network:

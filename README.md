@@ -29,9 +29,9 @@
 Для решения используется образ Docker на одном хосте.
 
 ...\
-├── [docker-compose.yml](file/docker/docker-compose.yml)\
-├── [master.cnf](file/master.cnf)\
-└── [slave.cnf](file/slave.cnf)
+├── [docker-compose.yml](file/task1/docker/docker-compose.yml)\
+├── [master.cnf](file/task1/master.cnf)\
+└── [slave.cnf](file/task1/slave.cnf)
 
 На мастере:
 
@@ -98,8 +98,8 @@ CREATE DATABASE test_db;
 
 ...\
 ├── [docker-compose.yml](file/docker_swarm/docker-compose.yml)\
-├── [master.cnf](file/master.cnf)\
-└── [slave.cnf](file/slave.cnf)
+├── [master.cnf](file/task1/master.cnf)\
+└── [slave.cnf](file/task1/slave.cnf)
 
 На мастере:
 
@@ -194,7 +194,6 @@ SELECT @@GLOBAL.read_only;
 
 На реплике будет 1, на мастере - 0.
 
-
 ---
 
 ### Задание 3* 
@@ -205,3 +204,74 @@ SELECT @@GLOBAL.read_only;
 
 
 ### Решение 3
+
+...\
+├── [docker-compose.yml](file/task1/docker/docker-compose.yml)\
+├── [master1.cnf](file/task3/master1.cnf)\
+└── [master2.cnf](file/task3/master2.cnf)
+
+#### Создание пользователя (на master1)
+
+```sql
+CREATE USER 'repl'@'%' IDENTIFIED BY '12345';
+```
+
+```sql
+GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';
+```
+
+```sql
+FLUSH PRIVILEGES;
+```
+
+#### Запуск репликаций
+
+На **master2** (подключение к **master1**):
+
+```sql
+CHANGE REPLICATION SOURCE TO 
+  SOURCE_HOST='mysql-master1', 
+  SOURCE_USER='repl', 
+  SOURCE_PASSWORD='12345', 
+  SOURCE_AUTO_POSITION = 1;
+```
+
+```sql
+START REPLICA;
+```
+
+На master1 (подключение к **master2**):
+
+```sql
+CHANGE REPLICATION SOURCE TO 
+  SOURCE_HOST='mysql-master2', 
+  SOURCE_USER='repl', 
+  SOURCE_PASSWORD='12345', 
+  SOURCE_AUTO_POSITION = 1;
+```
+
+```sql
+START REPLICA;
+```
+
+#### Проверка статуса
+
+На каждом сервере можно выполнить:
+
+```sql
+SHOW REPLICA STATUS\G
+```
+
+- Slave_IO_Running: Yes — связь установлена\
+- Slave_SQL_Running: Yes — транзакции успешно применяются\
+- Seconds_Behind_Master: 0 — задержек нет
+
+
+#### Проверка
+
+- Создана БД сначала на master1
+  - Проверка на master2
+- Создана БД на master2
+  - Проверка на master1
+
+![](pic/PIC004.PNG)
