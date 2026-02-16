@@ -236,7 +236,7 @@ SELECT @@GLOBAL.read_only;
 
 #### Docker (PostgreSQL)
 
-![docker-compose.yml](file/task2_psql/docker-compose.yml)
+[docker-compose.yml](file/task2_psql/docker-compose.yml)
 
 На мастере:
 
