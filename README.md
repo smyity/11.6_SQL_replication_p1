@@ -94,6 +94,42 @@ CREATE DATABASE test_db;
 
 ![](pic/PIC001.PNG)
 
+В этом всём есть проблема. На реплике всё ещё можно работать с таблицами, но изменения не будут отображаться на master. Чтобы этого не допустить нужно применить только чтение для всех пользователей. Также для удобства используется **GTID**.
+
+...\
+├── [docker-compose.yml](file/task1_var2/docker-compose.yml)\
+├── [master.cnf](file/task1_var2/master.cnf)\
+└── [slave.cnf](file/task1_var2/slave.cnf)
+
+На мастере:
+
+```sql
+CREATE USER 'repl'@'%' IDENTIFIED BY '12345';
+GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';
+FLUSH PRIVILEGES;
+```
+
+На реплике:
+
+```sql
+CHANGE REPLICATION SOURCE TO 
+  SOURCE_HOST='mysql-master', 
+  SOURCE_USER='repl', 
+  SOURCE_PASSWORD='12345', 
+  SOURCE_AUTO_POSITION = 1;
+```
+
+```sql
+START REPLICA;
+```
+
+После чего установить права только на чтение в контейнере с репликой:
+```
+docker exec -it mysql-slave mysql -u root -p12345 -e "SET GLOBAL super_read_only = 1;"
+```
+
+![](pic/PIC005.PNG)
+
 #### Docker swarm
 
 ...\
