@@ -24,7 +24,7 @@
 
 ### Решение 2
 
-#### Docker
+#### Docker (MySQL)
 
 Для решения используется образ Docker на одном хосте.
 
@@ -134,7 +134,7 @@ docker exec -it mysql-slave mysql -u root -p12345 -e "SET GLOBAL super_read_only
 
 Теперь чтение возможно, а запись нет.
 
-#### Docker swarm
+#### Docker swarm (MySQL)
 
 ...\
 ├── [docker-compose.yml](file/docker_swarm/docker-compose.yml)\
@@ -233,6 +233,56 @@ SELECT @@GLOBAL.read_only;
 ```
 
 На реплике будет 1, на мастере - 0.
+
+#### Docker (PostgreSQL)
+
+![docker-compose.yml](file/task2_psql/docker-compose.yml)
+
+На мастере:
+
+```sql
+docker exec -it postgresql_master psql -U admin -d test_db -c "CREATE USER replicator WITH REPLICATION ENCRYPTED PASSWORD '12345';"
+```
+```sql
+docker exec -it postgresql_master psql -U admin -d test_db -c "SHOW wal_level;"
+```
+
+Вывод должен быть:
+```
+ wal_level 
+-----------
+ replica
+(1 row)
+```
+
+```sql
+docker exec -it postgresql_master echo 'host replication replicator 0.0.0.0/0 scram-sha-256' >> /var/lib/postgresql/data/pg_hba.conf
+```
+```sql
+docker exec -u postgres -it postgresql_master pg_ctl reload
+```
+
+На реплике:
+
+```
+docker exec -it postgresql_repl rm -rf /var/lib/postgresql/data/*
+```
+```
+docker exec -it postgresql_repl pg_basebackup -h postgresql_master -D /var/lib/postgresql/data -U replicator -vP -R
+```
+```
+docker restart postgresql_repl
+```
+Проверка:
+
+```
+docker exec -it postgresql_master psql -U admin -d test_db -c "select * from pg_stat_replication;"
+```
+```
+docker exec -it postgresql_master psql -U admin -d test_db -c "CREATE TABLE sync_check (val text); INSERT INTO sync_check VALUES ('Hello from Master');"
+```
+
+![](pic/PIC006.PNG)
 
 ---
 
