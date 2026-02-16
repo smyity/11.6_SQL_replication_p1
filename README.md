@@ -132,6 +132,8 @@ docker exec -it mysql-slave mysql -u root -p12345 -e "SET GLOBAL super_read_only
 
 ![](pic/PIC005.PNG)
 
+Теперь чтение возможно, а запись нет.
+
 #### Docker swarm
 
 ...\
