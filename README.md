@@ -196,7 +196,7 @@ SELECT @@GLOBAL.read_only;
 
 ---
 
-### Задание 3* 
+### Задание 3
 
 Выполните конфигурацию master-master репликации. Произведите проверку.
 
@@ -204,6 +204,8 @@ SELECT @@GLOBAL.read_only;
 
 
 ### Решение 3
+
+Всё также в Docker`e
 
 ...\
 ├── [docker-compose.yml](file/task1/docker/docker-compose.yml)\
@@ -262,8 +264,8 @@ START REPLICA;
 SHOW REPLICA STATUS\G
 ```
 
-- Slave_IO_Running: Yes — связь установлена\
-- Slave_SQL_Running: Yes — транзакции успешно применяются\
+- Slave_IO_Running: Yes — связь установлена
+- Slave_SQL_Running: Yes — транзакции успешно применяются
 - Seconds_Behind_Master: 0 — задержек нет
 
 
